@@ -12,87 +12,23 @@ jobs:
       - name: 下载代码
         uses: actions/checkout@v4
         
-      - name: 安装Node.js
+      - name: 安装Node.js v22
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '22'  # 改为v22
+          cache: 'npm'
           
-      - name: 安装依赖并修复
+      - name: 安装依赖
         run: |
-          echo "🔧 安装依赖..."
+          echo "📦 使用Node.js $(node --version)"
+          echo "📦 使用npm $(npm --version)"
           
-          # 强制清理
           rm -rf node_modules
-          
-          # 检查package.json中vitepress版本
-          if grep -q '"vitepress":' package.json; then
-            echo "📦 检查到VitePress依赖"
-          else
-            echo "⚠️  未找到VitePress依赖，添加默认版本"
-            npm install vitepress@1.6.3 --save-dev
-          fi
-          
-          # 安装所有依赖
           npm install
           
-          # 检查VitePress模块
-          echo "🔍 检查VitePress文件..."
-          ls -la node_modules/vitepress/dist/client/theme-default/ || echo "目录不存在"
-      - name: 修复ES模块问题
-        run: |
-          echo "🔧 修复ES模块配置..."
-          
-          # 1. 检查package.json的type字段
-          if [ ! -f "package.json" ]; then
-            echo "❌ package.json不存在"
-            exit 1
-          fi
-          
-          # 2. 确保有type字段
-          if ! grep -q '"type"' package.json; then
-            echo "📝 添加type字段到package.json"
-            # 备份
-            cp package.json package.json.backup
-            # 使用jq添加type字段（如果安装了jq）
-            if command -v jq &> /dev/null; then
-              jq '. + {"type": "module"}' package.json > package.json.tmp && mv package.json.tmp package.json
-            else
-              # 手动添加
-              sed -i '1s/^/{ "type": "module",/' package.json
-              sed -i '$s/,$//' package.json
-            fi
-          fi
-          
-          # 3. 检查without-fonts文件扩展名
-          FONT_DIR="node_modules/vitepress/dist/client/theme-default"
-          if [ -f "$FONT_DIR/without-fonts.js" ]; then
-            echo "✅ without-fonts.js存在"
-            # 检查文件是否有正确的导出
-            if ! grep -q "export" "$FONT_DIR/without-fonts.js"; then
-              echo "🔄 添加导出语句"
-              echo "export default {};" >> "$FONT_DIR/without-fonts.js"
-            fi
-          fi
-          
-          # 4. 清理Node.js缓存
-          echo "🧹 清理Node.js模块缓存..."
-          find . -name "*.node" -type f -delete 2>/dev/null || true
       - name: 构建网站
-        run: |
-          # 先检查关键文件是否存在
-          if [ -f "node_modules/vitepress/dist/client/theme-default/without-fonts" ] || 
-             [ -f "node_modules/vitepress/dist/client/theme-default/without-fonts.js" ] ||
-             [ -f "node_modules/vitepress/dist/client/theme-default/without-fonts.mjs" ]; then
-            echo "✅ 找到without-fonts文件"
-          else
-            echo "⚠️  未找到without-fonts文件，尝试修复..."
-            # 尝试重新安装vitepress
-            npm install vitepress@1.6.3 --no-save
-          fi
-          
-          # 执行构建
-          npm run docs:build
-          
+        run: npm run docs:build
+        
       - name: 部署
         uses: peaceiris/actions-gh-pages@v3
         with:
