@@ -9,6 +9,45 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: 修复ES模块问题
+        run: |
+          echo "🔧 修复ES模块配置..."
+          
+          # 1. 检查package.json的type字段
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json不存在"
+            exit 1
+          fi
+          
+          # 2. 确保有type字段
+          if ! grep -q '"type"' package.json; then
+            echo "📝 添加type字段到package.json"
+            # 备份
+            cp package.json package.json.backup
+            # 使用jq添加type字段（如果安装了jq）
+            if command -v jq &> /dev/null; then
+              jq '. + {"type": "module"}' package.json > package.json.tmp && mv package.json.tmp package.json
+            else
+              # 手动添加
+              sed -i '1s/^/{ "type": "module",/' package.json
+              sed -i '$s/,$//' package.json
+            fi
+          fi
+          
+          # 3. 检查without-fonts文件扩展名
+          FONT_DIR="node_modules/vitepress/dist/client/theme-default"
+          if [ -f "$FONT_DIR/without-fonts.js" ]; then
+            echo "✅ without-fonts.js存在"
+            # 检查文件是否有正确的导出
+            if ! grep -q "export" "$FONT_DIR/without-fonts.js"; then
+              echo "🔄 添加导出语句"
+              echo "export default {};" >> "$FONT_DIR/without-fonts.js"
+            fi
+          fi
+          
+          # 4. 清理Node.js缓存
+          echo "🧹 清理Node.js模块缓存..."
+          find . -name "*.node" -type f -delete 2>/dev/null || true
       - name: 下载代码
         uses: actions/checkout@v4
         
