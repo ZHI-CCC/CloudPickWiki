@@ -15,20 +15,84 @@ jobs:
       - name: 安装Node.js v22
         uses: actions/setup-node@v4
         with:
-          node-version: '22'  # 改为v22
+          node-version: '22'
           cache: 'npm'
           
       - name: 安装依赖
         run: |
           echo "📦 使用Node.js $(node --version)"
-          echo "📦 使用npm $(npm --version)"
-          
           rm -rf node_modules
           npm install
           
-      - name: 构建网站
-        run: npm run docs:build
-        
+      - name: 🔧 修复VitePress模块导入
+        run: |
+          echo "🔧 修复VitePress导入bug..."
+          
+          # 文件路径
+          INDEX_FILE="node_modules/vitepress/dist/client/theme-default/index.js"
+          
+          if [ -f "$INDEX_FILE" ]; then
+            echo "📄 找到index.js文件"
+            
+            # 查看当前导入语句
+            echo "当前导入语句:"
+            grep -n "without-fonts" "$INDEX_FILE" || echo "未找到相关导入"
+            
+            # 修复1: 确保有.js扩展名
+            echo "🔄 修复导入扩展名..."
+            
+            # 使用sed修复所有可能的导入方式
+            sed -i "s|from './without-fonts'|from './without-fonts.js'|g" "$INDEX_FILE"
+            sed -i "s|from \"./without-fonts\"|from \"./without-fonts.js\"|g" "$INDEX_FILE"
+            sed -i "s|import('./without-fonts')|import('./without-fonts.js')|g" "$INDEX_FILE"
+            sed -i "s|import(\"./without-fonts\")|import(\"./without-fonts.js\")|g" "$INDEX_FILE"
+            
+            # 修复2: 确保文件存在且有内容
+            FONT_FILE="node_modules/vitepress/dist/client/theme-default/without-fonts.js"
+            if [ -f "$FONT_FILE" ]; then
+              echo "✅ without-fonts.js文件存在"
+              # 确保文件有导出
+              if ! grep -q "export" "$FONT_FILE"; then
+                echo "🔄 添加导出语句"
+                echo "export default {};" >> "$FONT_FILE"
+              fi
+            else
+              echo "🔄 创建缺失文件"
+              mkdir -p "$(dirname "$FONT_FILE")"
+              echo "export default {};" > "$FONT_FILE"
+            fi
+            
+            # 验证修复
+            echo "✅ 修复后导入语句:"
+            grep -n "without-fonts" "$INDEX_FILE"
+            
+          else
+            echo "❌ index.js文件不存在"
+            # 列出目录结构
+            echo "目录内容:"
+            find "node_modules/vitepress/dist/client/theme-default" -type f | head -10
+          fi
+          
+      - name: 🏗️ 构建网站
+        run: |
+          echo "🏗️ 开始构建..."
+          
+          # 调试：查看实际执行的构建命令
+          echo "构建命令: npm run docs:build"
+          
+          # 执行构建
+          npm run docs:build || {
+            echo "❌ 标准构建失败，尝试备用方案..."
+            
+            # 备用方案1: 使用npx
+            npx vitepress build docs --force || {
+              echo "❌ npx构建失败，尝试直接执行..."
+              
+              # 备用方案2: 直接运行脚本
+              node node_modules/vitepress/bin/vitepress.js build docs
+            }
+          }
+          
       - name: 部署
         uses: peaceiris/actions-gh-pages@v3
         with:
