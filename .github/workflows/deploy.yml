@@ -1,0 +1,35 @@
+name: 部署到GitHub Pages
+
+on:
+  push:
+    branches: [main]  # 当推送到main分支时触发
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest  # 使用最新的Ubuntu系统
+    
+    steps:
+      # 1. 下载代码
+      - name: 下载代码
+        uses: actions/checkout@v4
+        
+      # 2. 安装Node.js
+      - name: 安装Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18  # 使用Node.js 18版本
+          
+      # 3. 安装依赖
+      - name: 安装依赖
+        run: npm install
+        
+      # 4. 构建网站
+      - name: 构建网站
+        run: npm run docs:build
+        
+      # 5. 部署到GitHub Pages
+      - name: 部署
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/.vitepress/dist  # 构建后的文件夹
