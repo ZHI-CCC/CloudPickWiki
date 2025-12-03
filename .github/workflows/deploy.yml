@@ -2,11 +2,11 @@ name: 部署到GitHub Pages
 
 on:
   push:
-    branches: [main]  # 当推送到main分支时触发
+    branches: [main]
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest  # 使用最新的Ubuntu系统
+    runs-on: ubuntu-latest
     
     steps:
       # 1. 下载代码
@@ -17,12 +17,25 @@ jobs:
       - name: 安装Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18  # 使用Node.js 18版本
+          node-version: 18
           
-      # 3. 安装依赖
-      - name: 安装依赖
-        run: npm install
-        
+      # 3. ✨ 新增：清理并重新安装依赖（执行方案一）
+      - name: 清理并安装依赖
+        run: |
+          echo "🧹 开始清理依赖..."
+          # 删除 node_modules 文件夹
+          rm -rf node_modules
+          
+          # 删除 lock 文件（如果存在）
+          rm -f package-lock.json || true
+          rm -f yarn.lock || true
+          
+          echo "📦 重新安装依赖..."
+          # 安装依赖（使用 ci 确保版本一致）
+          npm ci
+          
+          echo "✅ 依赖安装完成"
+          
       # 4. 构建网站
       - name: 构建网站
         run: npm run docs:build
@@ -32,4 +45,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/.vitepress/dist  # 构建后的文件夹
+          publish_dir: docs/.vitepress/dist
