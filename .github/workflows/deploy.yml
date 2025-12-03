@@ -19,20 +19,21 @@ jobs:
         with:
           node-version: 18
           
-      # 3. ✨ 新增：清理并重新安装依赖（执行方案一）
+      # 3. 清理并重新安装依赖（修正版）
       - name: 清理并安装依赖
         run: |
           echo "🧹 开始清理依赖..."
-          # 删除 node_modules 文件夹
-          rm -rf node_modules
           
-          # 删除 lock 文件（如果存在）
-          rm -f package-lock.json || true
-          rm -f yarn.lock || true
-          
-          echo "📦 重新安装依赖..."
-          # 安装依赖（使用 ci 确保版本一致）
-          npm ci
+          # 检查是否有 package-lock.json
+          if [ -f "package-lock.json" ]; then
+            echo "📄 找到 package-lock.json，使用 npm ci"
+            rm -rf node_modules
+            npm ci
+          else
+            echo "📦 没有 package-lock.json，使用 npm install"
+            rm -rf node_modules
+            npm install
+          fi
           
           echo "✅ 依赖安装完成"
           
