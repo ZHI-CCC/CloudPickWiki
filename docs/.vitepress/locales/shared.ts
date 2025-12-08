@@ -30,6 +30,9 @@ export default defineConfig({
         'localhost'
       ],
     },
+    ssr: {
+      noExternal: ['vitepress', 'vitepress-theme-teek']
+    },
   },
 
   // https://vitepress.dev/reference/default-theme-config

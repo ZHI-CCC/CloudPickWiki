@@ -1,88 +1,39 @@
-name: 部署到GitHub Pages
+name: Deploy VitePress to GitHub Pages
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 下载代码
+      # 1. 检出代码
+      - name: Checkout
         uses: actions/checkout@v4
         
-      - name: 安装Node.js v22
+      # 2. 安装 Node.js v22
+      - name: Setup Node.js v22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           
-      - name: 安装依赖（强制模式）
-        run: |
-          echo "📦 安装依赖（解决peer依赖冲突）"
-          rm -rf node_modules
-          # 使用--legacy-peer-deps忽略peer依赖警告
-          npm install --legacy-peer-deps
-          
-      - name: 🔧 修复VitePress 1.6.4兼容性问题
-        run: |
-          echo "🔧 修复VitePress 1.6.4在Node.js v22下的问题..."
-          
-          # 1. 修复without-fonts导入
-          INDEX_FILE="node_modules/vitepress/dist/client/theme-default/index.js"
-          if [ -f "$INDEX_FILE" ]; then
-            echo "📄 修复index.js中的导入..."
-            sed -i "s|from './without-fonts'|from './without-fonts.js'|g" "$INDEX_FILE"
-            sed -i "s|from \"./without-fonts\"|from \"./without-fonts.js\"|g" "$INDEX_FILE"
-          fi
-          
-          # 2. 确保without-fonts.js文件存在
-          FONT_FILE="node_modules/vitepress/dist/client/theme-default/without-fonts.js"
-          if [ ! -f "$FONT_FILE" ]; then
-            echo "📄 创建without-fonts.js..."
-            mkdir -p "$(dirname "$FONT_FILE")"
-            echo "export default {};" > "$FONT_FILE"
-          fi
-          
-          # 3. 修复CSS导入问题 - 关键步骤！
-          echo "🎨 修复CSS导入问题..."
-          
-          # 方法：在所有JS文件中将.css导入改为空导入
-          find node_modules/vitepress -name "*.js" -type f | while read file; do
-            if grep -q "\.css" "$file"; then
-              # 备份原文件
-              cp "$file" "$file.bak"
-              # 替换.css导入
-              sed -i "s|import ['\"][^'\"]*\.css['\"]|// CSS import removed for Node.js v22 compatibility|g" "$file"
-              sed -i "s|from ['\"][^'\"]*\.css['\"]|from './empty-module.js'|g" "$file"
-            fi
-          done
-          
-          # 4. 创建空的CSS模块
-          echo "// Empty CSS module for Node.js v22 compatibility" > node_modules/vitepress/dist/client/theme-default/styles/empty-module.js
-          echo "export default {};" >> node_modules/vitepress/dist/client/theme-default/styles/empty-module.js
-          
-          # 5. 创建package.json让Node.js知道这是ES模块
-          echo '{"type":"module"}' > node_modules/vitepress/dist/client/theme-default/styles/package.json
-          
-      - name: 🏗️ 构建网站
-        run: |
-          echo "🏗️ 开始构建..."
-          
-          # 设置NODE_OPTIONS环境变量
-          export NODE_OPTIONS="--experimental-vm-modules --no-warnings"
-          
-          # 尝试构建
-          npm run docs:build || {
-            echo "⚠️ 标准构建失败，尝试替代方案..."
-            
-            # 替代方案：使用更宽松的环境变量
-            NODE_OPTIONS="--loader @node-loader/babel" npx vitepress build docs --force
-          }
-          
-      - name: 部署
+      # 3. 安装依赖
+      - name: Install dependencies
+        run: npm ci  # 使用 ci 确保版本一致
+        
+      # 4. 构建 VitePress
+      - name: Build VitePress
+        run: npm run docs:build
+        
+      # 5. 部署到 GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/.vitepress/dist
+          publish_branch: gh-pages  # 部署到 gh-pages 分支
+          force_orphan: true  # 清理历史提交，保持分支干净
