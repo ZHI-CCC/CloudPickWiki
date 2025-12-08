@@ -8,7 +8,7 @@ import { useTransformByRules, type TransformRule } from "./theme/composables/use
 
 // 🔗 国际化配置 - 激活多语言支持
 export default defineConfig({
-  base: '/CloudPickWiki/',  // 改成你的仓库名
+  base: '/',  // 改成你的仓库名
   ...shared,
   locales: {
     root: { label: "简体中文", ...zh }, // 默认中文语言
