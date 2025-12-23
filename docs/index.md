@@ -10,8 +10,8 @@ hero:
       text: 查看文档
       link: /install/感谢
     - theme: alt
-      text: 云拾社区
-      link: https://www.yunshimc.com/  # 外部链接
+      text: 反馈问题
+      link: https://github.com/ZHI-CCC/CloudPickWiki/issues  # 外部链接
       target: _blank  # 新窗口打开
   image:
     src: /favicon.svg

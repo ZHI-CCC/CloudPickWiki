@@ -10,8 +10,8 @@ hero:
       text: View Documentation
       link: /install/thanks
     - theme: alt
-      text: CloudPick Community
-      link: https://www.yunshimc.com/  # External link
+      text: Issues
+      link: https://github.com/ZHI-CCC/CloudPickWiki/issues  # External link
       target: _blank  # Open in new window
   image:
     src: /favicon.svg
